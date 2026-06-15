@@ -204,6 +204,75 @@ hr.div{border:none;border-top:1px solid var(--rule);margin:14px 0;}
   .link-badge{font-size:8pt;padding:1px 6px;}
   .res-note{font-size:8pt;}
 }
+
+
+/* ── Search ── */
+.search-wrap{position:relative;display:flex;align-items:center;}
+.search-wrap input{padding:5px 8px 5px 28px;font-size:12px;height:26px;
+  border:1px solid var(--rule);border-radius:5px;background:var(--soft);
+  font-family:var(--sans);color:var(--ink);outline:none;width:160px;transition:width .2s,border-color .15s;}
+.search-wrap input:focus{border-color:var(--accent);background:var(--white);width:200px;}
+.search-wrap .search-icon{position:absolute;left:8px;font-size:11px;color:var(--muted);pointer-events:none;}
+.search-wrap .search-clear{position:absolute;right:6px;font-size:11px;color:var(--muted);
+  background:none;border:none;cursor:pointer;padding:0;line-height:1;}
+.search-wrap .search-clear:hover{color:var(--ink);}
+.res-card.hidden{display:none;}
+.no-results{font-size:12px;color:var(--muted);font-style:italic;padding:8px 2px;grid-column:1/-1;}
+@media(max-width:680px){
+  .search-wrap input{width:130px;}.search-wrap input:focus{width:160px;}
+}
+
+/* ══ MOBILE ══ */
+@media (max-width: 680px) {
+  /* Teacher view — stack sidebar above main */
+  #teacher-view .shell{grid-template-columns:1fr;grid-template-rows:auto 1fr;}
+  .sidebar{position:relative;height:auto;overflow-y:visible;border-right:none;
+    border-bottom:1px solid var(--rule);padding:16px 14px;}
+  .main{padding:16px 14px;max-width:none;}
+
+  /* Student view */
+  #student-view.active{padding:16px 14px;}
+  .sv-header{flex-direction:column;gap:8px;}
+  .sv-toolbar{gap:4px;}
+  .sv-title-block .sv-title{font-size:17px;}
+
+  /* Toolbar wraps nicely */
+  .toolbar{gap:4px;}
+  .tog-btn{height:28px;font-size:10.5px;padding:0 8px;}
+
+  /* Cards always 1 col on mobile regardless of setting */
+  .cols-2 .resource-grid,
+  .cols-3 .resource-grid{grid-template-columns:1fr!important;}
+
+  /* Zoom banner */
+  .zoom-banner{padding:10px 12px;gap:10px;}
+  .zoom-icon{font-size:18px;}
+  .zoom-title{font-size:12px;}
+  .zoom-url{font-size:10px;}
+
+  /* Cards */
+  .res-card{padding:8px 10px;}
+  .res-title{font-size:12px;}
+  .link-badge{font-size:10px;padding:2px 6px;}
+
+  /* Category pill */
+  .cat-pill{font-size:9px;padding:2px 8px;}
+
+  /* Student tabs — horizontal scroll on mobile */
+  .student-tabs{flex-direction:column;}
+
+  /* Note editor */
+  .note-editor textarea{font-size:12px;}
+
+  /* Landing */
+  #landing.active{padding:30px 16px;}
+  #landing h1{font-size:22px;}
+}
+
+@media (max-width: 400px) {
+  .sv-toolbar{flex-wrap:wrap;}
+  .tog-sep{display:none;}
+}
 </style>
 </head>
 <body>
@@ -310,15 +379,17 @@ hr.div{border:none;border-top:1px solid var(--rule);margin:14px 0;}
           <button class="tog-btn active" id="t-sort-added" onclick="tSetSort('added')">Added</button>
           <button class="tog-btn" id="t-sort-az" onclick="tSetSort('az')">A → Z</button>
           <div class="tog-sep"></div>
-          <button class="tog-btn" id="t-links-tog" onclick="tToggleLinks()">👁 Show links</button>
+          <button class="tog-btn active-green" id="t-links-tog" onclick="tToggleLinks()">🙈 Hide links</button>
           <div class="tog-sep"></div>
           <span style="font-size:10.5px;color:var(--muted)">Cols:</span>
           <button class="tog-btn active" id="t-col1" onclick="tSetCols(1)">1</button>
           <button class="tog-btn" id="t-col2" onclick="tSetCols(2)">2</button>
           <button class="tog-btn" id="t-col3" onclick="tSetCols(3)">3</button>
+          <div class="tog-sep"></div>
+          <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" id="t-search" placeholder="Search…" oninput="tSearch()" /><button class="search-clear" id="t-search-clear" onclick="tClearSearch()" style="display:none">✕</button></div>
         </div>
       </div>
-      <div id="t-list" class="cols-1 links-hidden"></div>
+      <div id="t-list" class="cols-1 links-shown"></div>
     </main>
   </div>
 </div>
@@ -334,13 +405,15 @@ hr.div{border:none;border-top:1px solid var(--rule);margin:14px 0;}
       <button class="tog-btn active" id="sv-sort-added" onclick="svSetSort('added')">Added</button>
       <button class="tog-btn" id="sv-sort-az" onclick="svSetSort('az')">A → Z</button>
       <div class="tog-sep"></div>
-      <button class="tog-btn" id="sv-links-tog" onclick="svToggleLinks()">👁 Show links</button>
+      <button class="tog-btn active-green" id="sv-links-tog" onclick="svToggleLinks()">🙈 Hide links</button>
       <div class="tog-sep"></div>
       <button class="tog-btn" onclick="window.print()">🖨 Print</button>
+      <div class="tog-sep"></div>
+      <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" id="sv-search" placeholder="Search…" oninput="svSearch()" /><button class="search-clear" id="sv-search-clear" onclick="svClearSearch()" style="display:none">✕</button></div>
     </div>
   </div>
   <div class="sv-note-hint">✏️ You can add personal notes to any piece — click the 📝 button on any card.</div>
-  <div id="sv-list" class="cols-1 links-hidden"></div>
+  <div id="sv-list" class="cols-1 links-shown"></div>
 </div>
 
 <script>
@@ -362,9 +435,9 @@ let currentStudent=null;
 let editingId=null;
 
 // Teacher UI state
-let tCols=1,tSort="added",tShowLinks=false;
+let tCols=1,tSort="added",tShowLinks=true;
 // Student UI state
-let svSort="added",svShowLinks=false;
+let svSort="added",svShowLinks=true;
 
 /* ── Persist ── */
 function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(db));}
@@ -764,6 +837,50 @@ const DEFAULT_RESOURCES=[
   {id:31, cat:"Backing Tracks",title:"Arpeggios over Autumn Leaves",links:[{type:"ss",url:"https://www.soundslice.com/slices/QB8Yc"}]},
   {id:32, cat:"Backing Tracks",title:"Blues in G",links:[{type:"bt",url:"https://drive.google.com/file/d/1MzXU4Aeu0Ch7SSrj1SPCeoAXSokDEOGs/view?usp=drive_link"}]},
 ];
+
+
+/* ── Search ── */
+function tSearch(){
+  const q=document.getElementById("t-search").value.toLowerCase().trim();
+  document.getElementById("t-search-clear").style.display=q?"inline":"none";
+  document.querySelectorAll("#t-list .res-card").forEach(card=>{
+    const title=card.querySelector(".res-title");
+    card.classList.toggle("hidden",!!q&&!title.textContent.toLowerCase().includes(q));
+  });
+  // show no-results msg per grid
+  document.querySelectorAll("#t-list .resource-grid").forEach(grid=>{
+    let visible=[...grid.querySelectorAll(".res-card")].filter(c=>!c.classList.contains("hidden"));
+    let nr=grid.querySelector(".no-results");
+    if(!nr){nr=document.createElement("div");nr.className="no-results";nr.textContent="No matches.";grid.appendChild(nr);}
+    nr.style.display=visible.length===0&&q?"block":"none";
+  });
+}
+function tClearSearch(){
+  document.getElementById("t-search").value="";
+  document.getElementById("t-search-clear").style.display="none";
+  document.querySelectorAll("#t-list .res-card").forEach(c=>c.classList.remove("hidden"));
+  document.querySelectorAll("#t-list .no-results").forEach(n=>n.style.display="none");
+}
+function svSearch(){
+  const q=document.getElementById("sv-search").value.toLowerCase().trim();
+  document.getElementById("sv-search-clear").style.display=q?"inline":"none";
+  document.querySelectorAll("#sv-list .res-card").forEach(card=>{
+    const title=card.querySelector(".res-title");
+    card.classList.toggle("hidden",!!q&&!title.textContent.toLowerCase().includes(q));
+  });
+  document.querySelectorAll("#sv-list .resource-grid").forEach(grid=>{
+    let visible=[...grid.querySelectorAll(".res-card")].filter(c=>!c.classList.contains("hidden"));
+    let nr=grid.querySelector(".no-results");
+    if(!nr){nr=document.createElement("div");nr.className="no-results";nr.textContent="No matches.";grid.appendChild(nr);}
+    nr.style.display=visible.length===0&&q?"block":"none";
+  });
+}
+function svClearSearch(){
+  document.getElementById("sv-search").value="";
+  document.getElementById("sv-search-clear").style.display="none";
+  document.querySelectorAll("#sv-list .res-card").forEach(c=>c.classList.remove("hidden"));
+  document.querySelectorAll("#sv-list .no-results").forEach(n=>n.style.display="none");
+}
 
 /* ── Boot ── */
 load();
