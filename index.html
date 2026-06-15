@@ -222,6 +222,95 @@ hr.div{border:none;border-top:1px solid var(--rule);margin:14px 0;}
   .search-wrap input{width:130px;}.search-wrap input:focus{width:160px;}
 }
 
+
+/* ══ TOOLS PANEL (Metronome + Tuner) ══ */
+.tools-fab{position:fixed;bottom:24px;right:24px;z-index:300;display:flex;flex-direction:column;gap:8px;align-items:flex-end;}
+.fab-btn{width:48px;height:48px;border-radius:50%;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:20px;
+  box-shadow:0 4px 16px rgba(0,0,0,.2);transition:transform .15s,box-shadow .15s;}
+.fab-btn:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(0,0,0,.25);}
+.fab-metro{background:#1C1917;color:white;}
+.fab-tuner{background:#1D4ED8;color:white;}
+.fab-label{font-size:10px;font-weight:600;color:var(--muted);text-align:right;
+  background:var(--white);border:1px solid var(--rule);border-radius:4px;
+  padding:2px 6px;white-space:nowrap;}
+
+.tool-panel{position:fixed;bottom:88px;right:24px;z-index:301;
+  background:var(--white);border:1px solid var(--rule);border-radius:14px;
+  box-shadow:0 8px 40px rgba(0,0,0,.18);width:280px;
+  overflow:hidden;display:none;}
+.tool-panel.open{display:block;}
+.tool-panel-header{display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px 10px;border-bottom:1px solid var(--rule);}
+.tool-panel-header h3{font-size:13px;font-weight:700;}
+.tool-close{background:none;border:none;cursor:pointer;font-size:16px;
+  color:var(--muted);width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:4px;}
+.tool-close:hover{background:var(--soft);color:var(--ink);}
+.tool-body{padding:16px;}
+
+/* ── Metronome ── */
+.metro-bpm-display{text-align:center;margin-bottom:14px;}
+.metro-bpm-num{font-size:52px;font-weight:700;line-height:1;color:var(--ink);}
+.metro-bpm-label{font-size:10px;color:var(--muted);font-weight:600;letter-spacing:.08em;text-transform:uppercase;}
+.metro-beat-row{display:flex;justify-content:center;gap:6px;margin-bottom:16px;}
+.metro-beat-dot{width:12px;height:12px;border-radius:50%;background:var(--rule);transition:background .05s;}
+.metro-beat-dot.active{background:var(--accent);}
+.metro-beat-dot.downbeat.active{background:#DC2626;}
+.metro-slider{width:100%;accent-color:var(--accent);margin-bottom:12px;}
+.metro-presets{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px;}
+.metro-preset{padding:3px 8px;font-size:10.5px;font-weight:600;border:1px solid var(--rule);
+  border-radius:4px;background:transparent;cursor:pointer;color:var(--steel);font-family:var(--sans);}
+.metro-preset:hover{background:var(--soft);color:var(--ink);}
+.metro-btn-row{display:flex;gap:6px;margin-bottom:8px;}
+.metro-play{flex:1;padding:9px;background:var(--ink);color:white;border:none;
+  border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--sans);}
+.metro-play:hover{background:var(--steel);}
+.metro-play.playing{background:#DC2626;}
+.metro-tap{flex:0 0 auto;padding:9px 12px;background:transparent;color:var(--steel);
+  border:1px solid var(--rule);border-radius:7px;font-size:12px;font-weight:600;
+  cursor:pointer;font-family:var(--sans);}
+.metro-tap:hover{background:var(--soft);}
+.metro-sig{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--steel);}
+.metro-sig select{width:auto;padding:4px 6px;font-size:11.5px;}
+
+/* ── Tuner ── */
+.tuner-note-display{text-align:center;margin-bottom:12px;}
+.tuner-note{font-size:56px;font-weight:700;line-height:1;color:var(--ink);font-family:Georgia,serif;}
+.tuner-octave{font-size:18px;color:var(--muted);vertical-align:super;}
+.tuner-cents{font-size:12px;font-weight:600;margin-top:2px;}
+.tuner-cents.sharp{color:#DC2626;}
+.tuner-cents.flat{color:#1D4ED8;}
+.tuner-cents.intune{color:#15803D;}
+.tuner-needle-wrap{position:relative;height:60px;margin-bottom:12px;}
+.tuner-arc{width:100%;height:60px;}
+.tuner-needle{position:absolute;bottom:4px;left:50%;width:2px;height:48px;
+  background:var(--ink);border-radius:2px;transform-origin:bottom center;
+  transform:translateX(-50%) rotate(0deg);transition:transform .08s;}
+.tuner-scale{display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-bottom:10px;padding:0 4px;}
+.tuner-status{font-size:11px;color:var(--muted);text-align:center;margin-bottom:10px;min-height:16px;}
+.tuner-btn{width:100%;padding:9px;background:var(--col-zoom);color:white;border:none;
+  border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--sans);}
+.tuner-btn:hover{background:#1E3A8A;}
+.tuner-btn.active{background:#DC2626;}
+.tuner-instr{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px;}
+.tinstr-btn{padding:3px 7px;font-size:10px;font-weight:600;border:1px solid var(--rule);
+  border-radius:4px;background:transparent;cursor:pointer;color:var(--steel);font-family:var(--sans);}
+.tinstr-btn:hover,.tinstr-btn.active{background:var(--ink);color:white;border-color:var(--ink);}
+
+@media(max-width:680px){
+  .tools-fab{bottom:16px;right:16px;}
+  .tool-panel{right:12px;width:calc(100vw - 24px);bottom:80px;}
+}
+
+
+/* FAB visibility */
+#tools-fab{display:flex;}
+#landing.active ~ #tools-fab,
+body:not(:has(.view.active)) #tools-fab{display:none;}
+/* simpler approach — hide by default, show via class */
+#tools-fab{display:none;}
+#tools-fab.visible{display:flex;}
+
 /* ══ MOBILE ══ */
 @media (max-width: 680px) {
   /* Teacher view — stack sidebar above main */
@@ -416,6 +505,82 @@ hr.div{border:none;border-top:1px solid var(--rule);margin:14px 0;}
   <div id="sv-list" class="cols-1 links-shown"></div>
 </div>
 
+<!-- ══ TOOLS FAB ══ -->
+<div class="tools-fab" id="tools-fab">
+  <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+    <button class="fab-btn fab-tuner" onclick="openTool('tuner')" title="Tuner">🎵</button>
+    <button class="fab-btn fab-metro" onclick="openTool('metro')" title="Metronome">🥁</button>
+  </div>
+</div>
+
+<!-- Metronome Panel -->
+<div class="tool-panel" id="panel-metro">
+  <div class="tool-panel-header">
+    <h3>🥁 Metronome</h3>
+    <button class="tool-close" onclick="closeTool('metro')">✕</button>
+  </div>
+  <div class="tool-body">
+    <div class="metro-bpm-display">
+      <div class="metro-bpm-num" id="metro-bpm-num">100</div>
+      <div class="metro-bpm-label">BPM</div>
+    </div>
+    <div class="metro-beat-row" id="metro-beats"></div>
+    <input type="range" class="metro-slider" id="metro-slider" min="30" max="240" value="100" oninput="metroBpmChange(this.value)">
+    <div class="metro-presets">
+      <button class="metro-preset" onclick="setMetroBpm(60)">Largo 60</button>
+      <button class="metro-preset" onclick="setMetroBpm(76)">Adagio 76</button>
+      <button class="metro-preset" onclick="setMetroBpm(100)">Andante 100</button>
+      <button class="metro-preset" onclick="setMetroBpm(120)">Allegro 120</button>
+      <button class="metro-preset" onclick="setMetroBpm(160)">Presto 160</button>
+    </div>
+    <div class="metro-sig" style="margin-bottom:10px">
+      <span>Time sig:</span>
+      <select id="metro-sig" onchange="updateMetroBeatDots()">
+        <option value="4">4/4</option>
+        <option value="3">3/4</option>
+        <option value="6">6/8</option>
+        <option value="2">2/4</option>
+      </select>
+    </div>
+    <div class="metro-btn-row">
+      <button class="metro-play" id="metro-play-btn" onclick="toggleMetro()">▶ Start</button>
+      <button class="metro-tap" onclick="tapTempo()">Tap</button>
+    </div>
+  </div>
+</div>
+
+<!-- Tuner Panel -->
+<div class="tool-panel" id="panel-tuner">
+  <div class="tool-panel-header">
+    <h3>🎵 Chromatic Tuner</h3>
+    <button class="tool-close" onclick="closeTool('tuner')">✕</button>
+  </div>
+  <div class="tool-body">
+    <div class="tuner-note-display">
+      <div class="tuner-note" id="tuner-note">—<span class="tuner-octave" id="tuner-oct"></span></div>
+      <div class="tuner-cents" id="tuner-cents">Use mic to detect pitch</div>
+    </div>
+    <div class="tuner-needle-wrap">
+      <svg class="tuner-arc" viewBox="0 0 260 64">
+        <path d="M10,60 Q130,-20 250,60" stroke="#E7E5E4" stroke-width="3" fill="none"/>
+        <path d="M10,60 Q130,-20 250,60" stroke="url(#tgrad)" stroke-width="3" fill="none" stroke-dasharray="4 6" opacity="0.5"/>
+        <defs><linearGradient id="tgrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" style="stop-color:#1D4ED8"/>
+          <stop offset="50%" style="stop-color:#15803D"/>
+          <stop offset="100%" style="stop-color:#DC2626"/>
+        </linearGradient></defs>
+        <line x1="130" y1="60" x2="130" y2="10" stroke="#D6D3D1" stroke-width="1" stroke-dasharray="2 3"/>
+      </svg>
+      <div class="tuner-needle" id="tuner-needle"></div>
+    </div>
+    <div class="tuner-scale"><span>♭♭</span><span>♭</span><span>♩</span><span>♯</span><span>♯♯</span></div>
+    <div class="tuner-status" id="tuner-status">Press Start and play a note</div>
+    <button class="tuner-btn" id="tuner-btn" onclick="toggleTuner()">🎤 Start Tuner</button>
+  </div>
+</div>
+
+
+
 <script>
 const CATS=["Zoom","Pieces","Studies","Backing Tracks"];
 const CAT_STYLE={
@@ -475,6 +640,7 @@ function route(){
     document.getElementById("student-view").classList.add("active");
     renderStudentView(hash);
   }
+  updateFabVisibility();
 }
 window.addEventListener("hashchange",route);
 
@@ -882,6 +1048,245 @@ function svClearSearch(){
   document.querySelectorAll("#sv-list .no-results").forEach(n=>n.style.display="none");
 }
 
+
+/* ══ TOOLS ══ */
+function openTool(name){
+  const panel=document.getElementById("panel-"+name);
+  const wasOpen=panel.classList.contains("open");
+  document.querySelectorAll(".tool-panel").forEach(p=>p.classList.remove("open"));
+  if(!wasOpen) panel.classList.add("open");
+}
+function closeTool(name){
+  document.getElementById("panel-"+name).classList.remove("open");
+  if(name==="tuner") stopTuner();
+}
+
+/* Show FAB only on student/teacher views, not landing */
+function updateFabVisibility(){
+  const hash=window.location.hash.replace("#","").trim();
+  const fab=document.getElementById("tools-fab");
+  if(fab) fab.classList.toggle("visible", hash!=="" && hash!==undefined);
+}
+window.addEventListener("hashchange",updateFabVisibility);
+
+/* ══ METRONOME ══ */
+let metroCtx=null,metroInterval=null,metroBpm=100,metroBeat=0,metroSig=4;
+let tapTimes=[],metroPlaying=false;
+
+function updateMetroBeatDots(){
+  metroSig=parseInt(document.getElementById("metro-sig").value);
+  const row=document.getElementById("metro-beats");
+  row.innerHTML=Array.from({length:metroSig},(_,i)=>
+    `<div class="metro-beat-dot${i===0?" downbeat":""}" id="mbd-${i}"></div>`).join("");
+}
+
+function metroBpmChange(v){
+  metroBpm=parseInt(v);
+  document.getElementById("metro-bpm-num").textContent=metroBpm;
+  if(metroPlaying){stopMetro();startMetro();}
+}
+function setMetroBpm(v){
+  metroBpm=v;
+  document.getElementById("metro-bpm-num").textContent=v;
+  document.getElementById("metro-slider").value=v;
+  if(metroPlaying){stopMetro();startMetro();}
+}
+
+function toggleMetro(){
+  metroPlaying?stopMetro():startMetro();
+}
+function startMetro(){
+  if(!metroCtx) metroCtx=new(window.AudioContext||window.webkitAudioContext)();
+  metroPlaying=true;metroBeat=0;
+  document.getElementById("metro-play-btn").textContent="⏹ Stop";
+  document.getElementById("metro-play-btn").classList.add("playing");
+  tick();
+  metroInterval=setInterval(tick,60000/metroBpm);
+}
+function stopMetro(){
+  clearInterval(metroInterval);metroPlaying=false;metroBeat=0;
+  document.getElementById("metro-play-btn").textContent="▶ Start";
+  document.getElementById("metro-play-btn").classList.remove("playing");
+  document.querySelectorAll(".metro-beat-dot").forEach(d=>d.classList.remove("active"));
+}
+function tick(){
+  const isDown=metroBeat===0;
+  const osc=metroCtx.createOscillator();
+  const gain=metroCtx.createGain();
+  osc.connect(gain);gain.connect(metroCtx.destination);
+  osc.frequency.value=isDown?1000:800;
+  gain.gain.setValueAtTime(isDown?0.4:0.25,metroCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001,metroCtx.currentTime+0.08);
+  osc.start(metroCtx.currentTime);osc.stop(metroCtx.currentTime+0.08);
+  document.querySelectorAll(".metro-beat-dot").forEach((d,i)=>{
+    d.classList.toggle("active",i===metroBeat);
+  });
+  metroBeat=(metroBeat+1)%metroSig;
+}
+
+let tapArr=[];
+function tapTempo(){
+  const now=performance.now();
+  tapArr.push(now);
+  if(tapArr.length>8) tapArr.shift();
+  if(tapArr.length>1){
+    const intervals=[];
+    for(let i=1;i<tapArr.length;i++) intervals.push(tapArr[i]-tapArr[i-1]);
+    const avg=intervals.reduce((a,b)=>a+b)/intervals.length;
+    const bpm=Math.round(60000/avg);
+    if(bpm>=30&&bpm<=240) setMetroBpm(bpm);
+  }
+  // reset if no tap for 3s
+  clearTimeout(tapArr._reset);
+  tapArr._reset=setTimeout(()=>{tapArr=[];},3000);
+}
+
+/* ══ TUNER ══ */
+let tunerStream=null,tunerACtx=null,tunerAnalyser=null,tunerBuf=null,tunerRAF=null,tunerActive=false;
+const NOTES=["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+
+async function toggleTuner(){
+  tunerActive ? stopTuner() : await startTuner();
+}
+
+async function startTuner(){
+  try {
+    tunerACtx = new (window.AudioContext || window.webkitAudioContext)();
+    // Resume context (needed on mobile after user gesture)
+    if(tunerACtx.state === 'suspended') await tunerACtx.resume();
+
+    tunerStream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+      video: false
+    });
+
+    const src = tunerACtx.createMediaStreamSource(tunerStream);
+
+    // Use a larger FFT for better low-frequency resolution
+    tunerAnalyser = tunerACtx.createAnalyser();
+    tunerAnalyser.fftSize = 8192;
+    tunerAnalyser.smoothingTimeConstant = 0.5;
+    src.connect(tunerAnalyser);
+
+    tunerBuf = new Float32Array(tunerAnalyser.fftSize);
+    tunerActive = true;
+
+    document.getElementById("tuner-btn").textContent = "⏹ Stop Tuner";
+    document.getElementById("tuner-btn").classList.add("active");
+    document.getElementById("tuner-status").textContent = "Listening… play a note";
+
+    tunerLoop();
+  } catch(e) {
+    console.error("Tuner error:", e);
+    document.getElementById("tuner-status").textContent =
+      e.name === "NotAllowedError"
+        ? "Microphone access denied — please allow mic in your browser settings."
+        : "Could not access microphone: " + e.message;
+  }
+}
+
+function stopTuner(){
+  tunerActive = false;
+  if(tunerRAF) cancelAnimationFrame(tunerRAF);
+  if(tunerStream) tunerStream.getTracks().forEach(t => t.stop());
+  if(tunerACtx) { tunerACtx.close(); tunerACtx = null; }
+  tunerStream = null; tunerAnalyser = null;
+  document.getElementById("tuner-btn").textContent = "🎤 Start Tuner";
+  document.getElementById("tuner-btn").classList.remove("active");
+  document.getElementById("tuner-note").innerHTML = '—';
+  document.getElementById("tuner-cents").textContent = "Press Start and play a note";
+  document.getElementById("tuner-cents").className = "tuner-cents";
+  document.getElementById("tuner-needle").style.transform = "translateX(-50%) rotate(0deg)";
+  document.getElementById("tuner-status").textContent = "";
+}
+
+let tunerSilenceCount = 0;
+
+function tunerLoop(){
+  if(!tunerActive) return;
+  tunerAnalyser.getFloatTimeDomainData(tunerBuf);
+  const freq = yin(tunerBuf, tunerACtx.sampleRate);
+
+  if(freq > 50 && freq < 2000){
+    tunerSilenceCount = 0;
+    const midi = 12 * Math.log2(freq / 440) + 69;
+    const midiRound = Math.round(midi);
+    const cents = Math.round((midi - midiRound) * 100);
+    const noteName = NOTES[((midiRound % 12) + 12) % 12];
+    const octave = Math.floor(midiRound / 12) - 1;
+
+    document.getElementById("tuner-note").innerHTML =
+      noteName + '<span style="font-size:18px;color:var(--muted);vertical-align:super">' + octave + '</span>';
+
+    const centEl = document.getElementById("tuner-cents");
+    if(Math.abs(cents) <= 5){
+      centEl.textContent = "✓ In tune";
+      centEl.className = "tuner-cents intune";
+    } else if(cents > 0){
+      centEl.textContent = "+" + cents + " cents — tune down ↓";
+      centEl.className = "tuner-cents sharp";
+    } else {
+      centEl.textContent = cents + " cents — tune up ↑";
+      centEl.className = "tuner-cents flat";
+    }
+    document.getElementById("tuner-status").textContent = "";
+
+    const deg = Math.max(-45, Math.min(45, (cents / 50) * 45));
+    document.getElementById("tuner-needle").style.transform = "translateX(-50%) rotate(" + deg + "deg)";
+  } else {
+    tunerSilenceCount++;
+    if(tunerSilenceCount > 30){
+      document.getElementById("tuner-status").textContent = "Listening… play a note";
+    }
+  }
+
+  tunerRAF = requestAnimationFrame(tunerLoop);
+}
+
+/* YIN pitch detection — much more reliable than autocorrelation */
+function yin(buf, sampleRate){
+  const threshold = 0.10;
+  const half = Math.floor(buf.length / 2);
+  const yinBuf = new Float32Array(half);
+
+  // Step 1: difference function
+  yinBuf[0] = 1;
+  let runningSum = 0;
+  for(let tau = 1; tau < half; tau++){
+    let sum = 0;
+    for(let i = 0; i < half; i++){
+      const delta = buf[i] - buf[i + tau];
+      sum += delta * delta;
+    }
+    yinBuf[tau] = sum;
+    // Step 2: cumulative mean normalised
+    runningSum += sum;
+    yinBuf[tau] *= tau / runningSum;
+  }
+
+  // Step 3: absolute threshold
+  let tau = 2;
+  while(tau < half){
+    if(yinBuf[tau] < threshold){
+      while(tau + 1 < half && yinBuf[tau + 1] < yinBuf[tau]) tau++;
+      break;
+    }
+    tau++;
+  }
+  if(tau === half || yinBuf[tau] >= threshold) return -1;
+
+  // Step 4: parabolic interpolation
+  const x0 = tau > 1 ? tau - 1 : tau;
+  const x2 = tau + 1 < half ? tau + 1 : tau;
+  if(x0 === tau) return sampleRate / (yinBuf[tau] <= yinBuf[x2] ? tau : x2);
+  if(x2 === tau) return sampleRate / (yinBuf[tau] <= yinBuf[x0] ? tau : x0);
+  const betterTau = tau + (yinBuf[x2] - yinBuf[x0]) / (2 * (2 * yinBuf[tau] - yinBuf[x2] - yinBuf[x0]));
+  return sampleRate / betterTau;
+}
+
+/* init metro dots */
+updateMetroBeatDots();
+
 /* ── Boot ── */
 load();
 if(!Object.keys(db.students).length){
@@ -890,5 +1295,5 @@ if(!Object.keys(db.students).length){
 }
 route();
 </script>
+
 </body>
-</html>
