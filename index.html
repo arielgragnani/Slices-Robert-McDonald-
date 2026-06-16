@@ -566,7 +566,7 @@ body:not(:has(.view.active)) #tools-fab{display:none;}
         <span class="count-badge" id="t-count">—</span>
         <div class="toolbar">
           <span style="font-size:10.5px;color:var(--muted)">Sort:</span>
-          <button class="tog-btn active" id="t-sort-added" onclick="tSetSort('added')">Latest Lesson</button>
+          <button class="tog-btn active" id="t-sort-added" onclick="tSetSort('latest')">Latest Lesson</button>
           <button class="tog-btn" id="t-sort-az" onclick="tSetSort('az')">A → Z</button>
           <div class="tog-sep"></div>
           <button class="tog-btn active-green" id="t-links-tog" onclick="tToggleLinks()">🙈 Hide links</button>
@@ -597,7 +597,7 @@ body:not(:has(.view.active)) #tools-fab{display:none;}
       <div class="sv-sub" id="sv-sub"></div>
     </div>
     <div class="sv-toolbar">
-      <button class="tog-btn active" id="sv-sort-added" onclick="svSetSort('added')">Latest Lesson</button>
+      <button class="tog-btn active" id="sv-sort-added" onclick="svSetSort('latest')">Latest Lesson</button>
       <button class="tog-btn" id="sv-sort-az" onclick="svSetSort('az')">A → Z</button>
       <div class="tog-sep"></div>
       <button class="tog-btn active-green" id="sv-links-tog" onclick="svToggleLinks()">🙈 Hide links</button>
@@ -730,9 +730,9 @@ let currentStudent=null;
 let editingId=null;
 
 // Teacher UI state
-let tCols=1,tSort="added",tShowLinks=true;
+let tCols=1,tSort="latest",tShowLinks=true;
 // Student UI state
-let svSort="added",svShowLinks=true;
+let svSort="latest",svShowLinks=true;
 
 /* ── Persist ── */
 function save(){localStorage.setItem(STORAGE_KEY,JSON.stringify(db));}
@@ -740,6 +740,15 @@ function load(){
   try{const d=localStorage.getItem(STORAGE_KEY);if(d)db=JSON.parse(d);}catch(e){}
   if(!db.students)db.students={};
   if(!db.settings)db.settings={cols:1,sort:"added",showLinks:false};
+
+  // Force-refresh resources/payments whenever the baked-in content version changes.
+  // This never touches student notes, which live under a separate storage key.
+  const storedVersion = localStorage.getItem(CONTENT_VERSION_KEY);
+  if(storedVersion !== CONTENT_VERSION){
+    db = JSON.parse(JSON.stringify(BAKED_DATA));
+    localStorage.setItem(CONTENT_VERSION_KEY, CONTENT_VERSION);
+    save();
+  }
 }
 
 /* Student notes live only in the student's browser */
@@ -843,7 +852,7 @@ function tToggleLinks(){tShowLinks=!tShowLinks;syncTToolbar();renderTeacher();}
 function tSetCols(n){tCols=n;syncTToolbar();document.getElementById("t-list").className="cols-"+n+" "+(tShowLinks?"links-shown":"links-hidden");}
 function syncTToolbar(){
   [1,2,3].forEach(n=>{const el=document.getElementById("t-col"+n);if(el)el.classList.toggle("active",tCols===n);});
-  document.getElementById("t-sort-added").classList.toggle("active",tSort==="added");
+  document.getElementById("t-sort-added").classList.toggle("active",tSort==="latest");
   document.getElementById("t-sort-az").classList.toggle("active",tSort==="az");
   const lt=document.getElementById("t-links-tog");
   lt.textContent=tShowLinks?"🙈 Hide links":"👁 Show links";
@@ -856,7 +865,7 @@ function renderStudentView(key){
   const title=document.getElementById("sv-title");
   const sub=document.getElementById("sv-sub");
   const list=document.getElementById("sv-list");
-  document.getElementById("sv-sort-added").classList.toggle("active",svSort==="added");
+  document.getElementById("sv-sort-added").classList.toggle("active",svSort==="latest");
   document.getElementById("sv-sort-az").classList.toggle("active",svSort==="az");
   const lt=document.getElementById("sv-links-tog");
   lt.textContent=svShowLinks?"🙈 Hide links":"👁 Show links";
@@ -975,78 +984,96 @@ function togglePaySection(headerEl){
 }
 
 function buildHTML(resources,editable,studentCtx,payments){
-  const groups={};CATS.forEach(c=>groups[c]=[]);
-  resources.forEach(r=>{if(groups[r.cat])groups[r.cat].push(r);});
   const sortMode=editable?tSort:svSort;
-  if(sortMode==="az"){
-    Object.keys(groups).forEach(k=>groups[k].sort((a,b)=>a.title.localeCompare(b.title)));
-  } else {
-    // "Latest Lesson" — most recently added first within each category
-    Object.keys(groups).forEach(k=>groups[k].sort((a,b)=>b.id-a.id));
-  }
-
+  const renderableCats=["Pieces","Studies","Backing Tracks","Modes of the Major Scale"];
   let html="";
 
-  ["Pieces","Studies","Backing Tracks","Modes of the Major Scale"].forEach(cat=>{
-    const items=groups[cat];const s=CAT_STYLE[cat];
+  if(sortMode==="latest"){
+    /* GLOBAL latest-first — ignore category buckets entirely for ordering,
+       just show every non-Zoom resource newest-first, each still labelled with its category pill */
+    const flat=resources.filter(r=>renderableCats.includes(r.cat)).sort((a,b)=>b.id-a.id);
+    if(!flat.length){
+      html+=`<div class="cat-empty">No resources yet.</div>`;
+    } else {
+      html+=`<div class="resource-grid">`;
+      flat.forEach((r,i)=>{ html+=resourceCardHTML(r,i+1,editable,studentCtx,true); });
+      html+=`</div>`;
+    }
+    return html;
+  }
+
+  /* A → Z — grouped by category, alphabetical within each, empty categories hidden */
+  const groups={};renderableCats.forEach(c=>groups[c]=[]);
+  resources.forEach(r=>{if(groups[r.cat])groups[r.cat].push(r);});
+  Object.keys(groups).forEach(k=>groups[k].sort((a,b)=>a.title.localeCompare(b.title)));
+
+  renderableCats.forEach(cat=>{
+    const items=groups[cat];
+    if(!items.length) return; // hide empty categories entirely
+    const s=CAT_STYLE[cat];
     html+=`<div class="cat-section">
       <div class="cat-header">
         <span class="cat-pill" style="background:${s.lt};color:${s.pill};border:1px solid ${s.bd}">${s.icon}  ${cat}</span>
         <div class="cat-line"></div><span class="cat-count">${items.length}</span>
-      </div>`;
-    if(!items.length){html+=`<div class="cat-empty">No ${cat.toLowerCase()} yet.</div>`;}
-    else{
-      html+=`<div class="resource-grid">`;
-      items.forEach((r,i)=>{
-        const links=r.links||[];
-        const badges=links.map(l=>{
-          const safe=l.url.replace(/"/g,"&quot;");
-          const titleSafe=esc(r.title).replace(/'/g,"\\'");
-          if(isPdfEmbeddable(l.url)){
-            return `<a class="link-badge ${TYPE_CLASS[l.type]}" href="${safe}" onclick="event.preventDefault();openPdfViewer('${safe}','${titleSafe}')">${TYPE_ICON[l.type]} ${TYPE_LABEL[l.type]}</a>`;
-          }
-          return `<a class="link-badge ${TYPE_CLASS[l.type]}" href="${safe}" target="_blank" rel="noopener">${TYPE_ICON[l.type]} ${TYPE_LABEL[l.type]}</a>`;
-        }).join("");
-        const dots=links.map(l=>`<span class="res-dot dot-${l.type}" title="${TYPE_LABEL[l.type]}"></span>`).join("");
-
-        /* Note for student view */
-        let noteHTML="";
-        if(!editable&&studentCtx){
-          const existingNote=studentCtx.notes[r.id]||"";
-          const sk=studentCtx.key;
-          noteHTML=`
-            ${existingNote?`<div class="res-note">${esc(existingNote)}</div>`:""}
-            <div class="note-editor" id="note-ed-${r.id}">
-              <textarea placeholder="Add your personal note…">${esc(existingNote)}</textarea>
-              <div class="note-save-row">
-                <button class="note-save-btn" onclick="saveStudentNote(${r.id},'${sk}')">Save note</button>
-                <button class="note-cancel-btn" onclick="toggleNoteEditor(${r.id})">Cancel</button>
-              </div>
-            </div>`;
-        }
-
-        html+=`<div class="res-card">
-          <span class="res-num">${i+1}</span>
-          <div class="res-body">
-            <div class="res-title">${esc(r.title)}</div>
-            <div class="res-dots">${dots}</div>
-            <div class="res-links">${badges||'<span style="font-size:10.5px;color:var(--muted);font-style:italic">No links</span>'}</div>
-            ${noteHTML}
-          </div>
-          <div class="res-btns">
-            ${editable
-              ? `<button class="icon-btn edit" title="Edit" onclick="openEdit(${r.id})">✎</button>
-                 <button class="icon-btn del" title="Remove" onclick="removeResource(${r.id})">✕</button>`
-              : `<button class="icon-btn note-btn" title="Add note" onclick="toggleNoteEditor(${r.id})">📝</button>`
-            }
-          </div>
-        </div>`;
-      });
-      html+=`</div>`;
-    }
-    html+=`</div>`;
+      </div>
+      <div class="resource-grid">`;
+    items.forEach((r,i)=>{ html+=resourceCardHTML(r,i+1,editable,studentCtx,false); });
+    html+=`</div></div>`;
   });
+
   return html;
+}
+
+/* Renders a single resource card. showCatPill=true shows a small category tag (used in flat "Latest Lesson" mode) */
+function resourceCardHTML(r,num,editable,studentCtx,showCatPill){
+  const links=r.links||[];
+  const badges=links.map(l=>{
+    const safe=l.url.replace(/"/g,"&quot;");
+    const titleSafe=esc(r.title).replace(/'/g,"\\'");
+    if(isPdfEmbeddable(l.url)){
+      return `<a class="link-badge ${TYPE_CLASS[l.type]}" href="${safe}" onclick="event.preventDefault();openPdfViewer('${safe}','${titleSafe}')">${TYPE_ICON[l.type]} ${TYPE_LABEL[l.type]}</a>`;
+    }
+    return `<a class="link-badge ${TYPE_CLASS[l.type]}" href="${safe}" target="_blank" rel="noopener">${TYPE_ICON[l.type]} ${TYPE_LABEL[l.type]}</a>`;
+  }).join("");
+  const dots=links.map(l=>`<span class="res-dot dot-${l.type}" title="${TYPE_LABEL[l.type]}"></span>`).join("");
+
+  const catPillHTML = showCatPill ? (()=>{
+    const s=CAT_STYLE[r.cat];
+    return s ? `<span class="cat-pill" style="background:${s.lt};color:${s.pill};border:1px solid ${s.bd};font-size:8.5px;padding:2px 8px;margin-bottom:4px;display:inline-block">${s.icon} ${r.cat}</span>` : "";
+  })() : "";
+
+  let noteHTML="";
+  if(!editable&&studentCtx){
+    const existingNote=studentCtx.notes[r.id]||"";
+    const sk=studentCtx.key;
+    noteHTML=`
+      ${existingNote?`<div class="res-note">${esc(existingNote)}</div>`:""}
+      <div class="note-editor" id="note-ed-${r.id}">
+        <textarea placeholder="Add your personal note…">${esc(existingNote)}</textarea>
+        <div class="note-save-row">
+          <button class="note-save-btn" onclick="saveStudentNote(${r.id},'${sk}')">Save note</button>
+          <button class="note-cancel-btn" onclick="toggleNoteEditor(${r.id})">Cancel</button>
+        </div>
+      </div>`;
+  }
+
+  return `<div class="res-card">
+    <span class="res-num">${num}</span>
+    <div class="res-body">
+      ${catPillHTML}
+      <div class="res-title">${esc(r.title)}</div>
+      <div class="res-dots">${dots}</div>
+      <div class="res-links">${badges||'<span style="font-size:10.5px;color:var(--muted);font-style:italic">No links</span>'}</div>
+      ${noteHTML}
+    </div>
+    <div class="res-btns">
+      ${editable
+        ? `<button class="icon-btn edit" title="Edit" onclick="openEdit(${r.id})">✎</button>
+           <button class="icon-btn del" title="Remove" onclick="removeResource(${r.id})">✕</button>`
+        : `<button class="icon-btn note-btn" title="Add note" onclick="toggleNoteEditor(${r.id})">📝</button>`
+      }
+    </div>
+  </div>`;
 }
 
 /* ══ TEACHER RESOURCE CRUD ══ */
@@ -1512,11 +1539,11 @@ document.addEventListener("keydown", e => {
 });
 
 /* ── Boot ── */
+const BAKED_DATA = {"students": {"robert-mcdonald": {"name": "Robert Macdonald", "resources": [{"id": 1, "cat": "Zoom", "title": "Zoom Lesson", "links": [{"type": "bt", "url": "https://us06web.zoom.us/j/7040558403"}]}, {"id": 2, "cat": "Pieces", "title": "Angelina (Tommy Emmanuel)", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/JVtlc"}]}, {"id": 3, "cat": "Pieces", "title": "Amazing Grace (Tommy Emmanuel)", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/lhvzc"}]}, {"id": 4, "cat": "Pieces", "title": "Georgia on My Mind (Tommy Emmanuel)", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/hYqzc"}]}, {"id": 5, "cat": "Pieces", "title": "Little Wing SRV (Hendrix)", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/rcvwc"}]}, {"id": 6, "cat": "Pieces", "title": "Little Wing (Hendrix)", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/2zVYc"}]}, {"id": 7, "cat": "Pieces", "title": "Have You Ever Loved A Woman (Clapton)", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/J6bHc/"}]}, {"id": 8, "cat": "Pieces", "title": "Layla Acoustic (Clapton)", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/TYhJc/"}]}, {"id": 9, "cat": "Pieces", "title": "Layla Electric (Clapton)", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/SbvJc/"}]}, {"id": 10, "cat": "Pieces", "title": "Danny Boy", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/NZtJc"}]}, {"id": 11, "cat": "Pieces", "title": "Don't Give Up On Me", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/Xwtwc"}]}, {"id": 12, "cat": "Pieces", "title": "Sultans of Swing", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/fhcXc"}]}, {"id": 13, "cat": "Pieces", "title": "Who Knows Where the Time Goes?", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/NvRXc"}]}, {"id": 14, "cat": "Pieces", "title": "The Healing Game", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/FCVYc"}]}, {"id": 15, "cat": "Pieces", "title": "The Healing Game — Solo", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/17Tlc/in-practice-Jxly7"}]}, {"id": 16, "cat": "Pieces", "title": "Guilty (Bonnie Raitt)", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/TZcCc"}]}, {"id": 17, "cat": "Pieces", "title": "Gentle on My Mind (Glen Campbell)", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/1NYqc/"}]}, {"id": 18, "cat": "Pieces", "title": "History in The Making", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/BBp8c/"}]}, {"id": 19, "cat": "Pieces", "title": "Blackbird", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/Mjj8c/"}]}, {"id": 20, "cat": "Pieces", "title": "Til There Was You", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/qTkTc/"}, {"type": "pdf", "url": "https://drive.google.com/file/d/143yBEaAiZQi-uwJTlNEuyUWulolZpdBH/view?usp=drive_link"}]}, {"id": 21, "cat": "Studies", "title": "Coastal Funk", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/KD-Rc"}]}, {"id": 22, "cat": "Studies", "title": "Two For Her — Comping Blues in G", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/mGQCc/"}]}, {"id": 23, "cat": "Studies", "title": "All Blues — Soloing for Jazz Guitar", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/KRQVc/?from=channel"}]}, {"id": 24, "cat": "Studies", "title": "FAT Chords", "links": [{"type": "ss", "url": "https://drive.google.com/file/d/1P3t-YvChHK5tXP6qWjAWMb9Cgj1f9Lnu/view?usp=drive_link"}, {"type": "pdf", "url": "https://drive.google.com/file/d/1bPhNktZ1XPQcvUpk2J6ELz5WJCwwq298/view?usp=drive_link"}]}, {"id": 25, "cat": "Studies", "title": "Neck Diagrams Pentatonic Patterns", "links": [{"type": "pdf", "url": "https://drive.google.com/file/d/1VmvzAfHWOxkRFYBP9zct65XQFq8BWvu7/view?usp=sharing"}]}, {"id": 26, "cat": "Studies", "title": "Major Minor Pentatonic Exercise", "links": [{"type": "pdf", "url": "https://drive.google.com/file/d/18bzw7Tx9N63W1RRDPk4kR5KiEsDCeBJj/view?usp=sharing"}]}, {"id": 27, "cat": "Studies", "title": "Jazz Blues Worksheet Major & Minor Pentatonics", "links": [{"type": "pdf", "url": "https://drive.google.com/file/d/1DBwCRMLRFw3RTf6F7xOm0WkcLHG6wzhY/view?usp=drive_link"}]}, {"id": 28, "cat": "Studies", "title": "Pentatonic Patterns PDF", "links": [{"type": "pdf", "url": "https://drive.google.com/file/d/1xtOiX5X3ZpYVWAAflj-juBhZzRe3DZYm/view?usp=drive_link"}]}, {"id": 29, "cat": "Studies", "title": "Eb Modes", "links": [{"type": "pdf", "url": "https://drive.google.com/file/d/1GEKJ2H8Lq-09noggGbqW404Ln5HahLv2/view?usp=drive_link"}]}, {"id": 30, "cat": "Studies", "title": "Dominant Seventh Shapes", "links": [{"type": "pdf", "url": "https://drive.google.com/file/d/1B334_u7XPVx806DOE2xI_skdWVVBT3QJ/view?usp=drive_link"}]}, {"id": 31, "cat": "Backing Tracks", "title": "Arpeggios over Autumn Leaves", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/QB8Yc"}]}, {"id": 32, "cat": "Backing Tracks", "title": "Blues in G", "links": [{"type": "bt", "url": "https://drive.google.com/file/d/1MzXU4Aeu0Ch7SSrj1SPCeoAXSokDEOGs/view?usp=drive_link"}]}, {"id": 33, "cat": "Modes of the Major Scale", "title": "Ionian Progression", "links": [{"type": "pdf", "url": "https://drive.google.com/file/d/1vl4t0mto3KBd-Tx6_BwGnQxXJz1Ba0oM/view?usp=drive_link"}]}, {"id": 34, "cat": "Modes of the Major Scale", "title": "Dorian Progression", "links": [{"type": "pdf", "url": "https://drive.google.com/file/d/1HVwdObkv9yaAKwPTJjdY2rX_Somn1GYA/view?usp=drive_link"}]}, {"id": 35, "cat": "Modes of the Major Scale", "title": "Phrygian Progression", "links": [{"type": "pdf", "url": "https://drive.google.com/file/d/1LnGkBp9QtE064bHH7MBXZWiSsyOouQKf/view?usp=drive_link"}]}], "payments": []}, "john-stubbings": {"name": "John Stubbings", "resources": [{"id": 1, "cat": "Zoom", "title": "Zoom Lesson", "links": [{"type": "bt", "url": "https://us06web.zoom.us/j/7040558403"}]}], "payments": []}, "trevor-wales": {"name": "Trevor Wales", "resources": [{"id": 1, "cat": "Zoom", "title": "Zoom Lesson", "links": [{"type": "bt", "url": "https://us06web.zoom.us/j/7040558403"}]}, {"id": 2, "cat": "Pieces", "title": "The Girl From Ipanema (Melody)", "links": [{"type": "pdf", "url": "https://drive.google.com/file/d/1ny0bIhIk2fshSJHISR4zBDZpWWoq-w_c/view?usp=drive_link"}]}, {"id": 3, "cat": "Pieces", "title": "The Girl From Ipanema (Chords)", "links": [{"type": "pdf", "url": "https://drive.google.com/file/d/1FCIjHwuGe_s9y-N4ebFTcJ5sdDGfSgvE/view?usp=sharing"}]}], "payments": [{"amount": "55", "paidDate": "11 May 2026", "status": "completed", "detail": "Lesson 1 — 60 min, taken 11 May, completed"}, {"amount": "55 (covers 2 x lessons)", "paidDate": "11 June 2026", "status": "completed", "detail": "Lesson 2 — taken 12 June, completed"}, {"amount": "55 (covers 2 x lessons)", "paidDate": "11 June 2026", "status": "scheduled", "detail": "Lesson 3 — scheduled 16 June"}]}}, "settings": {"cols": 1, "sort": "added", "showLinks": false}};
+const CONTENT_VERSION = "2026-06-16-2";
+const CONTENT_VERSION_KEY = "gl_content_version";
+
 load();
-if(!Object.keys(db.students).length){
-  db = {"students": {"robert-mcdonald": {"name": "Robert Macdonald", "resources": [{"id": 1, "cat": "Zoom", "title": "Zoom Lesson", "links": [{"type": "bt", "url": "https://us06web.zoom.us/j/7040558403"}]}, {"id": 2, "cat": "Pieces", "title": "Angelina (Tommy Emmanuel)", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/JVtlc"}]}, {"id": 3, "cat": "Pieces", "title": "Amazing Grace (Tommy Emmanuel)", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/lhvzc"}]}, {"id": 4, "cat": "Pieces", "title": "Georgia on My Mind (Tommy Emmanuel)", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/hYqzc"}]}, {"id": 5, "cat": "Pieces", "title": "Little Wing SRV (Hendrix)", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/rcvwc"}]}, {"id": 6, "cat": "Pieces", "title": "Little Wing (Hendrix)", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/2zVYc"}]}, {"id": 7, "cat": "Pieces", "title": "Have You Ever Loved A Woman (Clapton)", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/J6bHc/"}]}, {"id": 8, "cat": "Pieces", "title": "Layla Acoustic (Clapton)", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/TYhJc/"}]}, {"id": 9, "cat": "Pieces", "title": "Layla Electric (Clapton)", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/SbvJc/"}]}, {"id": 10, "cat": "Pieces", "title": "Danny Boy", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/NZtJc"}]}, {"id": 11, "cat": "Pieces", "title": "Don't Give Up On Me", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/Xwtwc"}]}, {"id": 12, "cat": "Pieces", "title": "Sultans of Swing", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/fhcXc"}]}, {"id": 13, "cat": "Pieces", "title": "Who Knows Where the Time Goes?", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/NvRXc"}]}, {"id": 14, "cat": "Pieces", "title": "The Healing Game", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/FCVYc"}]}, {"id": 15, "cat": "Pieces", "title": "The Healing Game — Solo", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/17Tlc/in-practice-Jxly7"}]}, {"id": 16, "cat": "Pieces", "title": "Guilty (Bonnie Raitt)", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/TZcCc"}]}, {"id": 17, "cat": "Pieces", "title": "Gentle on My Mind (Glen Campbell)", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/1NYqc/"}]}, {"id": 18, "cat": "Pieces", "title": "History in The Making", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/BBp8c/"}]}, {"id": 19, "cat": "Pieces", "title": "Blackbird", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/Mjj8c/"}]}, {"id": 20, "cat": "Pieces", "title": "Til There Was You", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/qTkTc/"}, {"type": "pdf", "url": "https://drive.google.com/file/d/143yBEaAiZQi-uwJTlNEuyUWulolZpdBH/view?usp=drive_link"}]}, {"id": 21, "cat": "Studies", "title": "Coastal Funk", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/KD-Rc"}]}, {"id": 22, "cat": "Studies", "title": "Two For Her — Comping Blues in G", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/mGQCc/"}]}, {"id": 23, "cat": "Studies", "title": "All Blues — Soloing for Jazz Guitar", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/KRQVc/?from=channel"}]}, {"id": 24, "cat": "Studies", "title": "FAT Chords", "links": [{"type": "ss", "url": "https://drive.google.com/file/d/1P3t-YvChHK5tXP6qWjAWMb9Cgj1f9Lnu/view?usp=drive_link"}, {"type": "pdf", "url": "https://drive.google.com/file/d/1bPhNktZ1XPQcvUpk2J6ELz5WJCwwq298/view?usp=drive_link"}]}, {"id": 25, "cat": "Studies", "title": "Neck Diagrams Pentatonic Patterns", "links": [{"type": "pdf", "url": "https://drive.google.com/file/d/1VmvzAfHWOxkRFYBP9zct65XQFq8BWvu7/view?usp=sharing"}]}, {"id": 26, "cat": "Studies", "title": "Major Minor Pentatonic Exercise", "links": [{"type": "pdf", "url": "https://drive.google.com/file/d/18bzw7Tx9N63W1RRDPk4kR5KiEsDCeBJj/view?usp=sharing"}]}, {"id": 27, "cat": "Studies", "title": "Jazz Blues Worksheet Major & Minor Pentatonics", "links": [{"type": "pdf", "url": "https://drive.google.com/file/d/1DBwCRMLRFw3RTf6F7xOm0WkcLHG6wzhY/view?usp=drive_link"}]}, {"id": 28, "cat": "Studies", "title": "Pentatonic Patterns PDF", "links": [{"type": "pdf", "url": "https://drive.google.com/file/d/1xtOiX5X3ZpYVWAAflj-juBhZzRe3DZYm/view?usp=drive_link"}]}, {"id": 29, "cat": "Studies", "title": "Eb Modes", "links": [{"type": "pdf", "url": "https://drive.google.com/file/d/1GEKJ2H8Lq-09noggGbqW404Ln5HahLv2/view?usp=drive_link"}]}, {"id": 30, "cat": "Studies", "title": "Dominant Seventh Shapes", "links": [{"type": "pdf", "url": "https://drive.google.com/file/d/1B334_u7XPVx806DOE2xI_skdWVVBT3QJ/view?usp=drive_link"}]}, {"id": 31, "cat": "Backing Tracks", "title": "Arpeggios over Autumn Leaves", "links": [{"type": "ss", "url": "https://www.soundslice.com/slices/QB8Yc"}]}, {"id": 32, "cat": "Backing Tracks", "title": "Blues in G", "links": [{"type": "bt", "url": "https://drive.google.com/file/d/1MzXU4Aeu0Ch7SSrj1SPCeoAXSokDEOGs/view?usp=drive_link"}]}, {"id": 33, "cat": "Modes of the Major Scale", "title": "Ionian Progression", "links": [{"type": "pdf", "url": "https://drive.google.com/file/d/1vl4t0mto3KBd-Tx6_BwGnQxXJz1Ba0oM/view?usp=drive_link"}]}, {"id": 34, "cat": "Modes of the Major Scale", "title": "Dorian Progression", "links": [{"type": "pdf", "url": "https://drive.google.com/file/d/1HVwdObkv9yaAKwPTJjdY2rX_Somn1GYA/view?usp=drive_link"}]}, {"id": 35, "cat": "Modes of the Major Scale", "title": "Phrygian Progression", "links": [{"type": "pdf", "url": "https://drive.google.com/file/d/1LnGkBp9QtE064bHH7MBXZWiSsyOouQKf/view?usp=drive_link"}]}], "payments": []}, "john-stubbings": {"name": "John Stubbings", "resources": [{"id": 1, "cat": "Zoom", "title": "Zoom Lesson", "links": [{"type": "bt", "url": "https://us06web.zoom.us/j/7040558403"}]}], "payments": []}, "trevor-wales": {"name": "Trevor Wales", "resources": [{"id": 1, "cat": "Zoom", "title": "Zoom Lesson", "links": [{"type": "bt", "url": "https://us06web.zoom.us/j/7040558403"}]}, {"id": 2, "cat": "Pieces", "title": "The Girl From Ipanema (Melody)", "links": [{"type": "pdf", "url": "https://drive.google.com/file/d/1ny0bIhIk2fshSJHISR4zBDZpWWoq-w_c/view?usp=drive_link"}]}, {"id": 3, "cat": "Pieces", "title": "The Girl From Ipanema (Chords)", "links": [{"type": "pdf", "url": "https://drive.google.com/file/d/1FCIjHwuGe_s9y-N4ebFTcJ5sdDGfSgvE/view?usp=sharing"}]}], "payments": [{"amount": "55", "paidDate": "11 May 2026", "status": "completed", "detail": "Lesson 1 — 60 min, taken 11 May, completed"}, {"amount": "55 (covers 2 x lessons)", "paidDate": "—", "status": "completed", "detail": "Lesson 2 — taken 12 June, completed"}, {"amount": "55 (covers 2 x lessons)", "paidDate": "—", "status": "scheduled", "detail": "Lesson 3 — scheduled 16 June"}]}}, "settings": {"cols": 1, "sort": "added", "showLinks": false}};
-  save();
-}
 route();
 </script>
 
